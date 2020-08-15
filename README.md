@@ -19,6 +19,10 @@ The tables from the three sheets will be cleaned and mereged into a single table
 
 The new merged data will be saved in the `data` folder by the name `clean_global_2020_mpi_data.csv`
 
+## Link to dashboard
 
+This is the [Link](https://ayush-patel.shinyapps.io/Global_MPI_2020/) to the dashboard.
+
+Deployed for the first time on 16/08/2020.
 
 

@@ -1,0 +1,407 @@
+---
+title: "Global MPI 2020"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: scroll
+runtime: shiny_prerendered
+---
+
+```{r, context = "setup", include=FALSE}
+library(here)
+library(flexdashboard)
+library(tidyverse)
+library(sf)
+library(rnaturalearth)
+library(rnaturalearthhires)
+library(ggiraph)
+library(viridis)
+library(rgeos)
+```
+
+```{r, context = "data", include=FALSE}
+
+data_mpi <- read_csv(here("data","clean_global_2020_mpi_data.csv"))
+shape_world <- ne_countries(scale = "large",returnclass = "sf")
+shape_world <- shape_world[,c(19,47,95)]
+
+shape_world %>% 
+  left_join(data_mpi, by = c("iso_a3" = "iso_country_code")) -> shape_world
+
+fill_vectors_function <-  function(x){
+    as.vector(quantile(x,probs = 
+                         seq(0,1,length.out = 7),
+                       na.rm = T)) ->qtiles
+    
+    imap_chr(qtiles, function(., idx){
+    return(paste0(round(qtiles[idx],2),
+                "%", 
+                "-", 
+                round(qtiles[idx+1],2), "%"))
+      }) -> labels
+    
+    labels[1:length(labels) - 1] -> labels
+    
+    y = cut(x, 
+            breaks = qtiles,
+            labels = labels,
+            include.lowest = T)
+    
+    return(y)
+  } 
+  
+ #-----------------
+   #label for pct - H,A, vul, sev  
+  shape_world$fill_headcountratio <- unlist(
+    map(list(
+      shape_world$pct_pop_headcountratio),
+      fill_vectors_function))
+  
+
+  shape_world$fill_in_severe_poverty <- unlist(
+    map(list(
+      shape_world$pct_pop_in_severe_poverty),
+      fill_vectors_function))
+
+  shape_world$fill_intensity <- unlist(
+    map(list(
+      shape_world$pct_intensity),
+      fill_vectors_function))
+  
+  shape_world$fill_vulnerable_to_poverty <- unlist(
+    map(list(
+      shape_world$pct_pop_vulnerable_to_poverty),
+      fill_vectors_function))
+ # label setting for fill
+#-----------
+  fill_vectors_function_mpi <-  function(x){
+    as.vector(quantile(x,probs = 
+                         seq(0,1,length.out = 7),
+                       na.rm = T)) ->qtiles
+    
+    imap_chr(qtiles, function(., idx){
+    return(paste0(round(qtiles[idx],3), 
+                "-", 
+                round(qtiles[idx+1],3)))
+      }) -> labels
+    
+    labels[1:length(labels) - 1] -> labels
+    
+    y = cut(x, 
+            breaks = qtiles,
+            labels = labels,
+            include.lowest = T)
+    
+    return(y)
+  }
+  
+  shape_world$fill_mpi <- unlist(
+    map(list(shape_world$MPI_0_to_1),
+        fill_vectors_function_mpi)
+  )
+  # label setting for fill
+```
+
+
+Page1
+=================================================
+
+Row1 page1
+------------------------------------------------------
+
+### Data Intro
+
+```{r,fig.height=7, fig.width=12 }
+
+data_mpi$onclick = 
+  sprintf("window.open(\"%s%s\")",
+        "https://ophi.org.uk/wp-content/uploads/CB_",
+        paste(data_mpi$iso_country_code,"_2020.pdf",
+              sep = ""))
+
+data_mpi %>% 
+  ggplot(aes(world_region, MPI_0_to_1))+
+  geom_jitter_interactive(aes(tooltip = paste(country,
+                                              "\nMPI:",
+                                              round(MPI_0_to_1,3),
+                                              "\nH - percentage 
+                                              of pop:",
+                                    round(pct_pop_headcountratio,3),
+                                              "\nA (%):",
+                                              round(pct_intensity,
+                                                    3)), 
+                              size = tot_pop_K,
+                              colour = MPI_0_to_1,
+                              onclick = onclick),
+                          alpha = 0.5)+
+  scale_size(range = c(1,20),
+             breaks = c(100,3803.959,11340,30416,1399454),
+             guide = FALSE)+
+  scale_colour_continuous(name = "MPI",type = "viridis")+
+  geom_vline(aes(xintercept = 1.5),
+             alpha = 1/10,colour = "#7c1419")+
+  geom_vline(aes(xintercept = 2.5),
+             alpha = 1/10,colour = "#7c1419")+
+  geom_vline(aes(xintercept = 3.5),
+             alpha = 1/10,colour = "#7c1419")+
+  geom_vline(aes(xintercept = 4.5),
+             alpha = 1/10,colour = "#7c1419")+
+  geom_vline(aes(xintercept = 5.5),
+             alpha = 1/10,colour = "#7c1419")+
+  theme(
+    panel.background = element_rect(fill = "#f7f5e7",
+                                    colour = NA),
+    panel.grid = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.title = element_blank(),
+    axis.text.x = element_text(size = 6),
+    legend.position = c(0.5,0.9),
+    legend.direction = "horizontal",
+    legend.background = element_blank(),
+    legend.key.width = unit(1,"cm")
+  ) -> chart1
+
+girafe(ggobj = chart1,
+       width_svg = 12,
+       height_svg = 6.5,
+       options = opts_sizing(rescale = FALSE))
+```
+
+
+### Chart Explanation
+
+```
+The Chart on the left shows 107 countries from different world regions.  
+
+This is an interactive chart where hovering over chart area provides additional information.
+
+Each circle or point represents a country, the size of each circle is mapped with the total population of the country.  
+
+The colour of each circle is mapped with the MPI of the country.
+
+Hovering over a country will provide its MPI, H(% of population), A(intensity in %)
+
+Clicking on a country will lead the user to it country briefing published by OPHI
+
+One can notice that the MPI amongst the countries from Sub-Saharan Africa has most variance. This is least for countries from Europe and central Asia.
+
+```
+
+Row2 page1
+---------------------------------------------------------
+
+
+### Spatial View
+
+
+
+```{r,fig.height=7, fig.width=12 ,echo=FALSE}
+girafeOutput("spatialmap",width = "100%", height = "90%")
+
+```
+
+
+```{r, context = "server"}
+
+renderGirafe({
+  
+  
+  theme_map <- function(...) {
+  theme_minimal() +
+  theme(
+    text = element_text(color = "#666666"),
+    # remove all axes
+    axis.line = element_blank(),
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks = element_blank(),
+    # add a subtle grid
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    # background colors
+    plot.background = element_rect(fill = "#f7f5e7",
+                                   color = NA),
+    panel.background = element_rect(fill = "#f7f5e7",
+                                    color = NA),
+    legend.background = element_rect(fill = "#f7f5e7",
+                                     color = NA),
+    # borders and margins (I have commented these as these generate an error with the plotly, else it works perfect)
+    # plot.margin = unit(c(.5, .5, .2, .5), "cm"),
+    # panel.border = element_blank(),
+    # panel.spacing = unit(c(-.1, 0.2, .2, 0.2), "cm"),
+    # titles
+    legend.title = element_text(size = 11),
+    legend.text = element_text(size = 9, hjust = 0,
+                               color = "#666666"),
+    plot.title = element_text(size = 15, hjust = 0.5,
+                              color = "#666666"),
+    plot.subtitle = element_text(size = 10, hjust = 0.5,
+                                 color = "#666666",
+                                 margin = margin(b = -0.1,
+                                                 t = -0.1,
+                                                 l = 2,
+                                                 unit = "cm"),
+                                 debug = F),
+    # captions
+    plot.caption = element_text(size = 7,
+                                hjust = .5,
+                                margin = margin(t = 0.2,
+                                                b = 0,
+                                                unit = "cm"),
+                                color = "#939184"),
+    ...
+  )
+}
+  
+## ----------
+  
+  if (input$fill_choice == "Headcountratio(%)") {
+    
+  shape_world %>% 
+  ggplot()+
+  geom_sf_interactive(aes(
+    fill = fill_headcountratio,
+    tooltip= paste(country,":",
+                   "\nHeadcountratio (%):",
+                   pct_pop_headcountratio)
+    ))+
+    scale_fill_viridis(
+      option = "magma",
+      name = input$fill_choice,
+      alpha = 0.8,
+      begin = 0.1,
+      end = 0.9,
+      discrete = TRUE,
+      direction = 1,
+      guide = guide_legend(
+      keyheight = unit(5, units = "mm"),
+      title.position = "top",
+      reverse = T))+
+    theme_map()->s1
+  }else if (input$fill_choice == "% Population in severe poverty") {
+    
+    shape_world %>% 
+    ggplot()+
+  geom_sf_interactive(aes(
+    fill = fill_in_severe_poverty,
+    tooltip= paste(country,":",
+                   "\n% Pop in severe Poverty:\n",
+                   pct_pop_in_severe_poverty)
+    ))+
+    scale_fill_viridis(
+      option = "magma",
+      name = input$fill_choice,
+      alpha = 0.8,
+      begin = 0.1,
+      end = 0.9,
+      discrete = TRUE,
+      direction = 1,
+      guide = guide_legend(
+      keyheight = unit(5, units = "mm"),
+      title.position = "top",
+      reverse = T))+
+    theme_map()->s1
+  }else if (input$fill_choice == "Intensity (%)") {
+    
+    shape_world %>% 
+    ggplot()+
+  geom_sf_interactive(aes(
+    fill = fill_intensity,
+    tooltip= paste(country,":",
+                   "\nIntensity (%):",
+                   pct_intensity)
+    ))+
+    scale_fill_viridis(
+      option = "magma",
+      name = input$fill_choice,
+      alpha = 0.8,
+      begin = 0.1,
+      end = 0.9,
+      discrete = TRUE,
+      direction = 1,
+      guide = guide_legend(
+      keyheight = unit(5, units = "mm"),
+      title.position = "top",
+      reverse = T))+
+    theme_map()->s1
+  }else if (input$fill_choice == 
+            "% Population vulnerable to poverty") {
+    
+    shape_world %>% 
+    ggplot()+
+  geom_sf_interactive(aes(
+    fill = fill_vulnerable_to_poverty,
+    tooltip= paste(country,":",
+                   "\n% Pop vulenrable to Poverty:",
+                   pct_pop_vulnerable_to_poverty)
+    ))+
+    scale_fill_viridis(
+      option = "magma",
+      name = input$fill_choice,
+      alpha = 0.8,
+      begin = 0.1,
+      end = 0.9,
+      discrete = TRUE,
+      direction = 1,
+      guide = guide_legend(
+      keyheight = unit(5, units = "mm"),
+      title.position = "top",
+      reverse = T))+
+    theme_map()->s1
+  }else {
+    
+    shape_world %>% 
+    ggplot()+
+  geom_sf_interactive(aes(
+    fill = fill_mpi,
+    tooltip= paste(country,":",
+                   "\nMPI:",
+                   MPI_0_to_1)
+    ))+
+    scale_fill_viridis(
+      option = "magma",
+      name = input$fill_choice,
+      alpha = 0.8,
+      begin = 0.1,
+      end = 0.9,
+      discrete = TRUE,
+      direction = 1,
+      guide = guide_legend(
+      keyheight = unit(5, units = "mm"),
+      title.position = "top",
+      reverse = T))+
+    theme_map()->s1
+  }
+  
+
+  ggiraph(ggobj = s1,
+          width_svg = 12,
+       height_svg = 6.5,
+       options = opts_sizing(rescale = FALSE))
+    ## conditional plots
+}) -> output$spatialmap
+
+
+
+```
+
+### User Inputs
+
+```{r}
+selectInput(inputId = "fill_choice",label = "Choose a Variable",
+            choices = c("Headcountratio(%)",
+                        "% Population in severe poverty",
+                        "Intensity (%)",
+                        "% Population vulnerable to poverty",
+                        "MPI"))
+```
+
+```
+Here we receive the user inputs and generate maps accordingly
+
+The user has choice to generate choropleths in this case,from a given set of choices.
+
+Additional text to provide further details according to the user's input can also be generated.
+
+```
