@@ -2,6 +2,8 @@
 title: "Global MPI 2020"
 output: 
   flexdashboard::flex_dashboard:
+    source_code: "https://github.com/AyushBipinPatel/Global-MPI-2020-Dashboard"
+    theme: cerulean
     orientation: rows
     vertical_layout: scroll
 runtime: shiny_prerendered
@@ -17,6 +19,7 @@ library(rnaturalearthhires)
 library(ggiraph)
 library(viridis)
 library(rgeos)
+library(lwgeom)
 ```
 
 ```{r, context = "data", include=FALSE}
@@ -103,7 +106,7 @@ fill_vectors_function <-  function(x){
 ```
 
 
-Page1
+Data Intro
 =================================================
 
 Row1 page1
@@ -113,23 +116,31 @@ Row1 page1
 
 ```{r,fig.height=7, fig.width=12 }
 
-data_mpi$onclick = 
+girafeOutput("intro_bubble_chart",width = "100%", height = "90%")
+
+```
+
+```{r, context = "server"}
+renderGirafe({
+  data_mpi$onclick = 
   sprintf("window.open(\"%s%s\")",
         "https://ophi.org.uk/wp-content/uploads/CB_",
         paste(data_mpi$iso_country_code,"_2020.pdf",
               sep = ""))
 
-data_mpi %>% 
+
+gen_plot_intro_mpi <- function(){
+  data_mpi %>% 
   ggplot(aes(world_region, MPI_0_to_1))+
   geom_jitter_interactive(aes(tooltip = paste(country,
                                               "\nMPI:",
                                               round(MPI_0_to_1,3),
                                               "\nH - percentage 
                                               of pop:",
-                                    round(pct_pop_headcountratio,3),
+                                    round(pct_pop_headcountratio,1),
                                               "\nA (%):",
                                               round(pct_intensity,
-                                                    3)), 
+                                                    1)), 
                               size = tot_pop_K,
                               colour = MPI_0_to_1,
                               onclick = onclick),
@@ -160,16 +171,131 @@ data_mpi %>%
     legend.direction = "horizontal",
     legend.background = element_blank(),
     legend.key.width = unit(1,"cm")
-  ) -> chart1
+  )->x
+  
+  return(x)
+}
+
+gen_plot_intro_H <- function(){
+  data_mpi %>% 
+  ggplot(aes(world_region, pct_pop_headcountratio))+
+  geom_jitter_interactive(aes(tooltip = paste(country,
+                                              "\nMPI:",
+                                              round(MPI_0_to_1,3),
+                                              "\nH - percentage 
+                                              of pop:",
+                                    round(pct_pop_headcountratio,1),
+                                              "\nA (%):",
+                                              round(pct_intensity,
+                                                    1)), 
+                              size = tot_pop_K,
+                              colour = pct_pop_headcountratio,
+                              onclick = onclick),
+                          alpha = 0.5)+
+  scale_size(range = c(1,20),
+             breaks = c(100,3803.959,11340,30416,1399454),
+             guide = FALSE)+
+  scale_colour_continuous(name = "Headcountratio (%)",
+                          type = "viridis")+
+  geom_vline(aes(xintercept = 1.5),
+             alpha = 1/10,colour = "#7c1419")+
+  geom_vline(aes(xintercept = 2.5),
+             alpha = 1/10,colour = "#7c1419")+
+  geom_vline(aes(xintercept = 3.5),
+             alpha = 1/10,colour = "#7c1419")+
+  geom_vline(aes(xintercept = 4.5),
+             alpha = 1/10,colour = "#7c1419")+
+  geom_vline(aes(xintercept = 5.5),
+             alpha = 1/10,colour = "#7c1419")+
+  theme(
+    panel.background = element_rect(fill = "#f7f5e7",
+                                    colour = NA),
+    panel.grid = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.title = element_blank(),
+    axis.text.x = element_text(size = 6),
+    legend.position = c(0.5,0.9),
+    legend.direction = "horizontal",
+    legend.background = element_blank(),
+    legend.key.width = unit(1,"cm")
+  )->x
+  
+  return(x)
+}
+
+gen_plot_intro_A <- function(){
+  data_mpi %>% 
+  ggplot(aes(world_region, pct_intensity))+
+  geom_jitter_interactive(aes(tooltip = paste(country,
+                                              "\nMPI:",
+                                              round(MPI_0_to_1,3),
+                                              "\nH - percentage 
+                                              of pop:",
+                                    round(pct_pop_headcountratio,1),
+                                              "\nA (%):",
+                                              round(pct_intensity,
+                                                    1)), 
+                              size = tot_pop_K,
+                              colour = pct_intensity,
+                              onclick = onclick),
+                          alpha = 0.5)+
+  scale_size(range = c(1,20),
+             breaks = c(100,3803.959,11340,30416,1399454),
+             guide = FALSE)+
+  scale_colour_continuous(name = "Intensity (%)",
+                          type = "viridis")+
+  geom_vline(aes(xintercept = 1.5),
+             alpha = 1/10,colour = "#7c1419")+
+  geom_vline(aes(xintercept = 2.5),
+             alpha = 1/10,colour = "#7c1419")+
+  geom_vline(aes(xintercept = 3.5),
+             alpha = 1/10,colour = "#7c1419")+
+  geom_vline(aes(xintercept = 4.5),
+             alpha = 1/10,colour = "#7c1419")+
+  geom_vline(aes(xintercept = 5.5),
+             alpha = 1/10,colour = "#7c1419")+
+  theme(
+    panel.background = element_rect(fill = "#f7f5e7",
+                                    colour = NA),
+    panel.grid = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    axis.title = element_blank(),
+    axis.text.x = element_text(size = 6),
+    legend.position = c(0.5,0.9),
+    legend.direction = "horizontal",
+    legend.background = element_blank(),
+    legend.key.width = unit(1,"cm")
+  )->x
+  
+  return(x)
+}
+
+if(input$colour_choice == "MPI"){
+  chart1 <- gen_plot_intro_mpi()
+}else if(input$colour_choice == "Headcountratio(%)"){
+  chart1 <- gen_plot_intro_H()
+}else {
+  chart1 <- gen_plot_intro_A()
+}
 
 girafe(ggobj = chart1,
        width_svg = 12,
        height_svg = 6.5,
        options = opts_sizing(rescale = FALSE))
+}) ->output$intro_bubble_chart
 ```
 
 
 ### Chart Explanation
+
+```{r}
+selectInput(inputId = "colour_choice",label = "Choose a Variable",
+            choices = c("Headcountratio(%)",
+                        "Intensity (%)",
+                        "MPI"),selected = "MPI")
+```
 
 ```
 The Chart on the left shows 107 countries from different world regions.  
@@ -178,7 +304,7 @@ This is an interactive chart where hovering over chart area provides additional 
 
 Each circle or point represents a country, the size of each circle is mapped with the total population of the country.  
 
-The colour of each circle is mapped with the MPI of the country.
+The colour of each circle is mapped with the MPI,H or A  of the country, depending ont the user's choice.
 
 Hovering over a country will provide its MPI, H(% of population), A(intensity in %)
 
@@ -232,6 +358,8 @@ renderGirafe({
     # panel.spacing = unit(c(-.1, 0.2, .2, 0.2), "cm"),
     # titles
     legend.title = element_text(size = 11),
+    legend.direction = "vertical",
+    legend.position = c(0.1,0.5),
     legend.text = element_text(size = 9, hjust = 0,
                                color = "#666666"),
     plot.title = element_text(size = 15, hjust = 0.5,
@@ -264,7 +392,7 @@ renderGirafe({
     fill = fill_headcountratio,
     tooltip= paste(country,":",
                    "\nHeadcountratio (%):",
-                   pct_pop_headcountratio)
+                   round(pct_pop_headcountratio,1))
     ))+
     scale_fill_viridis(
       option = "magma",
@@ -287,7 +415,7 @@ renderGirafe({
     fill = fill_in_severe_poverty,
     tooltip= paste(country,":",
                    "\n% Pop in severe Poverty:\n",
-                   pct_pop_in_severe_poverty)
+                   round(pct_pop_in_severe_poverty,2))
     ))+
     scale_fill_viridis(
       option = "magma",
@@ -310,7 +438,7 @@ renderGirafe({
     fill = fill_intensity,
     tooltip= paste(country,":",
                    "\nIntensity (%):",
-                   pct_intensity)
+                   round(pct_intensity,1))
     ))+
     scale_fill_viridis(
       option = "magma",
@@ -334,7 +462,7 @@ renderGirafe({
     fill = fill_vulnerable_to_poverty,
     tooltip= paste(country,":",
                    "\n% Pop vulenrable to Poverty:",
-                   pct_pop_vulnerable_to_poverty)
+                   round(pct_pop_vulnerable_to_poverty,2))
     ))+
     scale_fill_viridis(
       option = "magma",
@@ -357,7 +485,7 @@ renderGirafe({
     fill = fill_mpi,
     tooltip= paste(country,":",
                    "\nMPI:",
-                   MPI_0_to_1)
+                   round(MPI_0_to_1,3))
     ))+
     scale_fill_viridis(
       option = "magma",
@@ -405,3 +533,289 @@ The user has choice to generate choropleths in this case,from a given set of cho
 Additional text to provide further details according to the user's input can also be generated.
 
 ```
+
+Country Level Charts
+===================================================
+
+Inputs{.sidebar}
+---------------------------------------------
+
+### Input Panel
+
+Select the country of your interest.
+
+
+```{r}
+selectInput(inputId = "selected_country",
+            label = "Choose a Country",
+            choices = unique(data_mpi$country)
+              )
+```
+
+
+In this section we dwell towards country level details.  
+
+The users has the choice of selecting any one of the 107 countries at a time and this will present three things:  
+
+  * A Map of the selected country: this is to help get an intuitive sense regarding the proprotions of the poor and non-poor people in a country. 
+  * Contribution to poverty by each dimension
+  * Contribution to Poverty by each indicator.
+  
+
+
+new row
+-------------------------------------------------
+
+### Country MAP
+
+```{r,fig.height=7, fig.width=12}
+plotOutput("countrymap")
+```
+
+
+```{r, context = "server"}
+renderPlot({
+  shape_world %>% 
+  filter(country == input$selected_country) %>% 
+  select(geometry) %>% 
+  st_transform(crs = st_crs(.)) ->data_random_points
+
+shape_world %>% 
+  filter(country == input$selected_country) %>% 
+  pull(num_mpi_poor_people_K) -> element_num_mpi_por
+
+shape_world %>% 
+  filter(country == input$selected_country) %>% 
+  pull(tot_pop_K) -> element_tot_pop_K
+
+
+
+st_sample(data_random_points,round(element_tot_pop_K/100,0)) %>% 
+  st_sf() %>% 
+  st_transform(crs = st_crs(.)) -> data_random_points
+
+data_random_points %>% 
+  mutate(
+    rnum = row_number(),
+    sel_num_mpi_poor = ifelse(rnum<= 
+                                round(
+                                  element_num_mpi_por/100,0),
+                              1,0)
+  ) -> data_random_points
+
+
+theme_map <- function(...) {
+  theme_minimal() +
+  theme(
+    text = element_text(color = "#666666"),
+    # remove all axes
+    axis.line = element_blank(),
+    axis.text.x = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks = element_blank(),
+    # add a subtle grid
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    # background colors
+    plot.background = element_rect(fill = "#f7f5e7",
+                                   color = NA),
+    panel.background = element_rect(fill = "#f7f5e7",
+                                    color = NA),
+    legend.background = element_rect(fill = "#f7f5e7",
+                                     color = NA),
+    # borders and margins (I have commented these as these generate an error with the plotly, else it works perfect)
+    # plot.margin = unit(c(.5, .5, .2, .5), "cm"),
+    # panel.border = element_blank(),
+    # panel.spacing = unit(c(-.1, 0.2, .2, 0.2), "cm"),
+    # titles
+    legend.title = element_text(size = 11),
+    legend.direction = "vertical",
+    legend.position = c(0.1,0.5),
+    legend.text = element_text(size = 9, hjust = 0,
+                               color = "#666666"),
+    plot.title = element_text(size = 15, hjust = 0.5,
+                              color = "#666666"),
+    plot.subtitle = element_text(size = 10, hjust = 0.5,
+                                 color = "#666666",
+                                 margin = margin(b = -0.1,
+                                                 t = -0.1,
+                                                 l = 2,
+                                                 unit = "cm"),
+                                 debug = F),
+    # captions
+    plot.caption = element_text(size = 7,
+                                hjust = .5,
+                                margin = margin(t = 0.2,
+                                                b = 0,
+                                                unit = "cm"),
+                                color = "#939184"),
+    ...
+  )
+}
+
+shape_world %>%
+  filter(country == input$selected_country) %>% 
+  ggplot()+
+  geom_sf()+
+  geom_sf(data = data_random_points,
+          aes(colour = as.factor(sel_num_mpi_poor)),
+          size = 2, alpha = 1/5)+
+  scale_color_manual(values = c("#4f8a8b","#7c1419"))+
+  theme_map()+
+  labs(title = input$selected_country,
+        subtitle = paste("Every dot represents 100,000 people. \nGreen represents non-poor and red represents poor.",
+                         "\n In",
+                         input$selected_country
+                         ,"there are",round(element_tot_pop_K,0),
+                         "K non-poor", 
+                         "and ",round(element_num_mpi_por,0),
+                         "K poor peopel."),
+       caption = "The positioning of the dots is set at random")+
+  guides(colour = FALSE)
+}) -> output$countrymap
+
+
+
+```
+
+
+row2
+--------------------------------------------
+
+### Contribution to Poverty - Dimensions
+
+```{r, fig.width=4}
+plotOutput("contri_to_povertychart")
+```
+
+
+```{r, context = "server"}
+renderPlot({
+  shape_world %>% 
+  filter(country == input$selected_country) %>% 
+  pivot_longer(cols = pct_contri_health:pct_contri_living_standards,
+               names_to = "Dimension", 
+               values_to = "Contribution") %>% 
+  ggplot(aes(Dimension, Contribution))+
+  geom_col(aes(fill = Dimension))+
+  scale_x_discrete(labels = c(
+    "pct_contri_education" = "Education",
+    "pct_contri_health" = "Health",
+    "pct_contri_living_standards" = "Living Standards"
+  )) +
+  scale_fill_manual(values = c("#724c54","#65160d","#294759"))+
+  geom_text(aes(label = round(Contribution,1)),
+            position = position_nudge(y = 1))+
+  labs(y = NULL,
+       x = NULL,
+       title = "Percentage Contribution to Poverty by Dimension",
+       subtitle = input$selected_country)+
+  theme(
+    panel.background = element_rect(colour = NA,
+                                    fill ="#f7f5e7"),
+    plot.background = element_rect(colour = NA,
+                                    fill ="#f7f5e7"),
+    panel.grid = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    text = element_text(face = "bold")
+  )+
+  guides(fill = FALSE)
+}) -> output$contri_to_povertychart
+```
+
+
+
+### Contribution to Poverty - Indicators
+
+
+```{r}
+plotOutput("contri_to_povertychartindicator")
+```
+
+
+```{r, context = "server"}
+renderPlot({
+  
+  col_val <- c(
+    "pct_contri_nutrition" = "#962c20",
+    "pct_contri_child_mortality" = "#632524",
+    "pct_contri_years_of_schooling" = "#c5a9ab",
+    "pct_contri_school_attendance" = "#a58580",
+    "pct_contri_cooking_fuel" = "#b4cbd9",
+    "pct_contri_sanitation" = "#7e9db3",
+    "pct_contri_drinking_water" = "#5d8099",
+    "pct_contri_electricity" = "#416680",
+    "pct_contri_housing" = "#154b66",
+    "pct_contri_assests" = "#003650"
+  )
+  
+  
+  shape_world %>% 
+  filter(country == input$selected_country) %>% 
+  pivot_longer(cols = pct_contri_nutrition:pct_contri_assests,
+               names_to = "Indicator", 
+               values_to = "Contribution") %>% 
+    mutate(
+      Indicator = factor(Indicator,
+                            levels = c(
+                              "pct_contri_nutrition" ,
+                              "pct_contri_child_mortality" ,
+                              "pct_contri_years_of_schooling" ,
+                              "pct_contri_school_attendance",
+                              "pct_contri_cooking_fuel",
+                              "pct_contri_sanitation" ,
+                              "pct_contri_drinking_water",
+                              "pct_contri_electricity" ,
+                              "pct_contri_housing" ,
+                              "pct_contri_assests" ))
+    ) %>% 
+  ggplot(aes(Indicator, Contribution))+
+  geom_col(aes(fill = Indicator))+
+  scale_x_discrete(labels = c(
+    "pct_contri_nutrition" = "Nutrition",
+    "pct_contri_child_mortality" = "Child \nMortality",
+    "pct_contri_years_of_schooling" = "Years of \nSchooling",
+    "pct_contri_school_attendance" = "School \nAttendance",
+    "pct_contri_cooking_fuel" = "Cooking \nFuel",
+    "pct_contri_sanitation" = "Sanitation",
+    "pct_contri_drinking_water" = "Drinking \nWater",
+    "pct_contri_electricity" = "Electricity",
+    "pct_contri_housing" = "Housing",
+    "pct_contri_assests" = "Assests"
+  )) +
+  scale_fill_manual(values = col_val)+
+  geom_text(aes(label = round(Contribution,1)),
+            position = position_nudge(y = 1))+
+  labs(y = NULL,
+       x = NULL,
+       title = "Percentage Contribution to Poverty by Indicators",
+       subtitle = input$selected_country)+
+  theme(
+    panel.background = element_rect(colour = NA,
+                                    fill ="#f7f5e7"),
+    plot.background = element_rect(colour = NA,
+                                    fill ="#f7f5e7"),
+    panel.grid = element_blank(),
+    axis.text.y = element_blank(),
+    axis.ticks.y = element_blank(),
+    text = element_text(face = "bold")
+  )+
+    guides(fill = FALSE)
+}) -> output$contri_to_povertychartindicator
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

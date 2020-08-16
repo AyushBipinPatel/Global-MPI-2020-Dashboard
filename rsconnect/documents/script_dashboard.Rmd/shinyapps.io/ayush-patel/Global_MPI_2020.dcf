@@ -5,9 +5,9 @@ account: ayush-patel
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 2673854
-bundleId: 3520375
+bundleId: 3522936
 url: https://ayush-patel.shinyapps.io/Global_MPI_2020/
-when: 1597531332.16813
+when: 1597614546.01028
 asMultiple: FALSE
 asStatic: FALSE
-ignoredFiles: cleaning_data.R|README.md|script_dashboard.html|data/data_ophi_global_2020.xlsx|script_dashboard_data/unnamed-chunk-2.RData|script_dashboard_files/figure-html/unnamed-chunk-3-1.mb.png|script_dashboard_files/figure-html/unnamed-chunk-3-1.png
+ignoredFiles: .RData|cleaning_data.R|README.md|script_dashboard.html|data/data_ophi_global_2020.xlsx|script_dashboard_data/unnamed-chunk-2.RData
