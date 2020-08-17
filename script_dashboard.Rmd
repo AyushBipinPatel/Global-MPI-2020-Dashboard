@@ -20,6 +20,8 @@ library(ggiraph)
 library(viridis)
 library(rgeos)
 library(lwgeom)
+library(waffle)
+library(cowplot)
 ```
 
 ```{r, context = "data", include=FALSE}
@@ -548,7 +550,7 @@ Select the country of your interest.
 ```{r}
 selectInput(inputId = "selected_country",
             label = "Choose a Country",
-            choices = unique(data_mpi$country)
+            choices = sort(unique(data_mpi$country))
               )
 ```
 
@@ -575,33 +577,50 @@ plotOutput("countrymap")
 
 ```{r, context = "server"}
 renderPlot({
-  shape_world %>% 
-  filter(country == input$selected_country) %>% 
-  select(geometry) %>% 
-  st_transform(crs = st_crs(.)) ->data_random_points
-
+ 
 shape_world %>% 
   filter(country == input$selected_country) %>% 
   pull(num_mpi_poor_people_K) -> element_num_mpi_por
 
+round(element_num_mpi_por/100,0) -> element_num_mpi_por  
+  
 shape_world %>% 
   filter(country == input$selected_country) %>% 
   pull(tot_pop_K) -> element_tot_pop_K
 
+round(element_tot_pop_K/100,0)->element_tot_pop_K
 
+shape_world %>% 
+  filter(country == input$selected_country) %>% 
+  pull(pct_pop_vulnerable_to_poverty) -> pct_pop_vil_poverty
 
-st_sample(data_random_points,round(element_tot_pop_K/100,0)) %>% 
-  st_sf() %>% 
-  st_transform(crs = st_crs(.)) -> data_random_points
+round(element_tot_pop_K*pct_pop_vil_poverty/100,0) -> vul_pop
 
-data_random_points %>% 
-  mutate(
-    rnum = row_number(),
-    sel_num_mpi_poor = ifelse(rnum<= 
-                                round(
-                                  element_num_mpi_por/100,0),
-                              1,0)
-  ) -> data_random_points
+waffle(parts = c(`Non-poor` = 
+                           (element_tot_pop_K - vul_pop -
+                              element_num_mpi_por),
+                         `Vulnerable to Poverty` = vul_pop,
+                         `Poor` = element_num_mpi_por),
+               rows = ifelse(element_tot_pop_K <= 40,7,
+                             ifelse(
+                               element_tot_pop_K>40 & 
+                                 element_tot_pop_K <= 114,
+                               10, ifelse(
+                                 element_tot_pop_K >114 &
+                                   element_tot_pop_K <= 1500,
+                                 25,100))),
+               colors = c("#d1eaa3","#e77c54","#632524"),
+               size = ifelse(element_tot_pop_K <= 40,3,
+                             ifelse(
+                               element_tot_pop_K>40 & 
+                                 element_tot_pop_K <= 114,
+                               2, ifelse(
+                                 element_tot_pop_K >114 &
+                                   element_tot_pop_K <= 1500,
+                                 1,0.5))),
+       xlab = "1 Squae represents 100,000 (100K) people",
+       legend_pos = "bottom") ->wc
+
 
 
 theme_map <- function(...) {
@@ -657,24 +676,21 @@ shape_world %>%
   filter(country == input$selected_country) %>% 
   ggplot()+
   geom_sf()+
-  geom_sf(data = data_random_points,
-          aes(colour = as.factor(sel_num_mpi_poor)),
-          size = 2, alpha = 1/5)+
-  scale_color_manual(values = c("#4f8a8b","#7c1419"))+
   theme_map()+
   labs(title = input$selected_country,
-        subtitle = paste("Every dot represents 100,000 people. \nGreen represents non-poor and red represents poor.",
-                         "\n In",
+        subtitle = paste("In",
                          input$selected_country
                          ,"there are",round(element_tot_pop_K,0),
                          "K non-poor", 
                          "and ",round(element_num_mpi_por,0),
-                         "K poor peopel."),
-       caption = "The positioning of the dots is set at random")+
-  guides(colour = FALSE)
+                         "K poor people."))+
+  guides(colour = FALSE)->mc
+
+ggdraw()+
+  draw_plot(mc,0,0,0.5,1)+
+  draw_plot(wc,0.5,0,.5,1)
+
 }) -> output$countrymap
-
-
 
 ```
 
@@ -804,9 +820,6 @@ renderPlot({
     guides(fill = FALSE)
 }) -> output$contri_to_povertychartindicator
 ```
-
-
-
 
 
 
